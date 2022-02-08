@@ -17,7 +17,9 @@ from flask_cors import CORS
 from lama_cleaner.helper import (download_model, load_img, norm_img,
                                  numpy_to_bytes, pad_img_to_modulo,
                                  resize_max_size)
+from werkzeug.serving import WSGIRequestHandler
 
+WSGIRequestHandler.protocol_version = "HTTP/1.1"
 NUM_THREADS = str(multiprocessing.cpu_count())
 
 os.environ["OMP_NUM_THREADS"] = NUM_THREADS
@@ -41,6 +43,7 @@ device = None
 @app.route("/inpaint", methods=["POST"])
 def process():
     input = request.files
+    
     image = load_img(input["image"].read())
     original_shape = image.shape
     interpolation = cv2.INTER_CUBIC
@@ -57,7 +60,9 @@ def process():
     image = norm_img(image)
 
     mask = load_img(input["mask"].read(), gray=True)
+    print(f"Origin mask shape: {mask.shape}")
     mask = resize_max_size(mask, size_limit=size_limit, interpolation=interpolation)
+    print(f"Resized mask shape: {mask.shape}")
     mask = norm_img(mask)
 
     res_np_img = run(image, mask)
